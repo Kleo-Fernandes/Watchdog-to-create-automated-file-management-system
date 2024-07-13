@@ -1,0 +1,210 @@
+import time
+import logging
+import shutil
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import os
+import hashlib
+
+#this code includes creating a backup folder 
+#logs are not be foccused on as it can give different messages due to file movement which is interpreted differently through the code  
+
+folder_to_track = 'D:\\SiemensProduction_Models' 
+backup_folder = 'D:\\SiemensProduction_Backup'
+modified_folder = 'D:\\SiemensProduction_ModifiedFiles'
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S') #logging the data 
+
+def get_file_hash(filepath):
+    hasher = hashlib.md5()
+    try:
+        with open(filepath, 'rb') as f:         #reading the file in binary format
+            buf = f.read()                      
+            hasher.update(buf)                  #updating hasher with the contents of the file 
+    except FileNotFoundError:
+        logging.error(f'File not found: {filepath}')
+        return None
+    return hasher.hexdigest()
+
+file_hashes = {}
+files_being_moved = set()
+
+class Handler(FileSystemEventHandler):
+    def backup_file(self, src):
+        file_name = os.path.basename(src)           #extracting the file name from the source event 
+        backup_path = os.path.join(backup_folder, file_name)       #creating the path for backup 
+        os.makedirs(backup_folder, exist_ok=True)         #directory for backup folder  
+        shutil.copy2(src, backup_path)            #using shutil to copy all the file contents at the required location and inheriting all the metadata 
+        return backup_path
+
+    def on_created(self, event):
+        if not event.is_directory and event.src_path not in files_being_moved:
+            src = event.src_path
+            file_name = os.path.basename(src)
+
+            if "$RECYCLE.BIN" in src:                          #prevent the files from recycle bin to cause the create event to be triggered 
+                return
+            File, FileExt = os.path.splitext(file_name)
+            if file_name.startswith("GF") and len(File) >= 12:       #checking if the file starts with GF AND the file length is 12 
+                # Add a delay to ensure the file is fully created
+                time.sleep(0.5)
+
+                # Check if the file has content
+                if os.path.exists(src) and os.path.getsize(src) > 0:
+                    year = file_name[2:6]          #extracting the year and month from the serial no. of the file 
+                    month = file_name[6:8]
+                    folder_path_year = os.path.join('D:\\SiemensProduction_Models\\', year) 
+                    folder_path_month = os.path.join(folder_path_year, month)
+                    os.makedirs(folder_path_year, exist_ok=True)   
+                    os.makedirs(folder_path_month, exist_ok=True)
+                    new_dest = os.path.join(folder_path_month, file_name)
+                    success = False
+                    for attempt in range(10):      #file transfer is kept to tried for 10 times in case if it does not 
+                        try:
+                            if os.path.exists(src):
+                                shutil.move(src, new_dest)
+                                logging.info(f'Created: {src} to {new_dest}')
+                                file_hashes[new_dest] = get_file_hash(new_dest)
+                                # Backup the original file
+                                self.backup_file(new_dest)
+                                success = True
+                                break
+                            else:
+                                logging.info(f'Created: {src} to {new_dest}')
+                                success = True
+                                break
+                        except (PermissionError, FileNotFoundError):
+                            time.sleep(1)
+                        except Exception as e:
+                            logging.error(f'Unexpected error: {e}')
+                            break
+                    
+                    if not success:
+                        logging.error(f'Failed to move {src} after 10 attempts')
+
+    def on_moved(self, event):
+        if not event.is_directory:
+            src = event.src_path
+            dest = event.dest_path
+
+            files_being_moved.add(src)
+            files_being_moved.add(dest)
+
+            file_name = os.path.basename(dest)
+            File, FileExt = os.path.splitext(file_name)
+
+            if file_name.startswith("GF") and len(File) >= 12:
+                # Check if the file has content
+                if os.path.exists(dest) and os.path.getsize(dest) > 0:
+                    year = file_name[2:6]
+                    month = file_name[6:8]
+                    folder_path_year = os.path.join('D:\\SiemensProduction_Models\\', year)
+                    folder_path_month = os.path.join(folder_path_year, month)
+                    os.makedirs(folder_path_year, exist_ok=True)
+                    os.makedirs(folder_path_month, exist_ok=True)
+
+                    new_dest = os.path.join(folder_path_month, file_name)
+                    success = False
+                    for attempt in range(10):
+                        try:
+                            if os.path.exists(src):
+                                shutil.move(src, new_dest)
+                                logging.info(f'Moved: {src} to {new_dest}')
+                                file_hashes[new_dest] = get_file_hash(new_dest)
+                                # Backup the original file
+                                self.backup_file(new_dest)
+                                success = True
+                                break
+                            else:
+                                logging.info(f'Moved: {src} to {new_dest}')
+                                success = True
+                                break
+                        except (PermissionError, FileNotFoundError):
+                            time.sleep(1)
+                        except Exception as e:
+                            logging.error(f'Unexpected error: {e}')
+                            break
+                    
+                    if not success:
+                        logging.error(f'Failed to move {src} after 10 attempts')
+
+            files_being_moved.remove(src)
+            files_being_moved.remove(dest)
+
+    def on_deleted(self, event):      #only log the deleted events
+        if not event.is_directory and event.src_path not in files_being_moved:
+            src = event.src_path
+            logging.info(f'File deleted: {src}')
+            if src in file_hashes:
+                del file_hashes[src]
+
+    def on_modified(self, event):
+        if not event.is_directory and event.src_path not in files_being_moved:
+            src = event.src_path
+            file_name = os.path.basename(src)
+            File, FileExt = os.path.splitext(file_name)
+
+            if os.path.exists(src) and file_name.startswith("GF") and len(File) >= 12:
+                # Check if the file has content
+                if os.path.getsize(src) > 0:
+                    current_hash = get_file_hash(src)
+                    if current_hash is None:
+                        return
+
+                    if src in file_hashes and file_hashes[src] == current_hash:
+                        logging.info(f'No change detected in file: {src}')
+                    else:
+                        files_being_moved.add(src)
+                        year = file_name[2:6]
+                        month = file_name[6:8]
+                        folder_path_year = os.path.join(modified_folder, year)
+                        folder_path_month = os.path.join(folder_path_year, month)
+                        os.makedirs(folder_path_year, exist_ok=True)
+                        os.makedirs(folder_path_month, exist_ok=True)
+
+                        new_dest = os.path.join(folder_path_month, file_name)
+                        success = False
+                        for attempt in range(10):
+                            try:
+                                if os.path.exists(src):
+                                    shutil.move(src, new_dest) #used .move and not .copy2 here to prevent it from looping due to modified event being triggered again 
+                                    logging.info(f'Modified: {src} to {new_dest}')
+                                    file_hashes[src] = current_hash
+                                    file_hashes[new_dest] = current_hash
+                                    backup_path = os.path.join(backup_folder, file_name)  # Restore the original file from backup
+                                    if os.path.exists(backup_path):
+                                        shutil.move(backup_path, src)
+                                        logging.info(f'Restored original file from backup: {backup_path} to {src}')
+                                    else:
+                                        logging.error(f'Backup not found for: {src}')
+
+                                    success = True
+                                    break
+                                else:
+                                    success = True
+                                    break
+                            except (PermissionError, FileNotFoundError):
+                                time.sleep(1)
+                            except Exception as e:
+                                logging.error(f'Unexpected error: {e}')
+                                break
+                        
+                        if not success:
+                            logging.error(f'Failed to copy {src} after 10 attempts')
+
+                        files_being_moved.remove(src)
+
+observer = Observer()
+event_handler = Handler()
+
+observer.schedule(event_handler, folder_to_track, recursive=True)
+observer.start()
+
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:          #let the program sleep for 1 second (wait for 1 second)
+    observer.stop()
+observer.join()
+
+
