@@ -17,3 +17,4 @@ How It Works:
 This script is highly customizable and can be adapted for other naming conventions or workflows. To use it, update the folder paths in the code and run the script. It will run continuously until stopped.
 
 Thankyou
+Kleo Fernandes
