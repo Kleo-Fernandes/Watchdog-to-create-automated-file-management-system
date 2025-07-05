@@ -6,14 +6,14 @@ This Python script is designed to **organize, track, and back up files** in a sp
 
 ## Key Features
 
-Automatically organizes files based on naming convention into year and month subfolders.  
-Creates backups of original files in a designated backup folder.  
-Detects and handles modified files by moving them to a separate folder and restoring the original from backup.  
-Logs all file system events to the console in real-time.
+1. Automatically organizes files based on naming convention into year and month subfolders.  
+2. Creates backups of original files in a designated backup folder.  
+3. Detects and handles modified files by moving them to a separate folder and restoring the original from backup.  
+4. Logs all file system events to the console in real-time.
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 1. Monitors a specified folder for file system events.
 2. Processes files starting with `GF` and having a length of 12 characters.
