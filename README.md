@@ -85,7 +85,7 @@ Now, your **Watchdog Management Project will automatically run every time you lo
 ---
 
 
-## 📜 License
+## License
 
 This project is intended for personal, educational, and internal organizational file management automation.
 
