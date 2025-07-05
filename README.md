@@ -1,15 +1,15 @@
-# 🗂️ Python Automated File Management System
+# Python Automated File Management System
 
 This Python script is designed to **organize, track, and back up files** in a specified directory. It uses the **[`watchdog`](https://pypi.org/project/watchdog/)** library to monitor file system events like creation, modification, deletion, and movement in real-time.
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
-✅ Automatically organizes files based on naming convention into year and month subfolders.  
-✅ Creates backups of original files in a designated backup folder.  
-✅ Detects and handles modified files by moving them to a separate folder and restoring the original from backup.  
-✅ Logs all file system events to the console in real-time.
+Automatically organizes files based on naming convention into year and month subfolders.  
+Creates backups of original files in a designated backup folder.  
+Detects and handles modified files by moving them to a separate folder and restoring the original from backup.  
+Logs all file system events to the console in real-time.
 
 ---
 
@@ -27,15 +27,15 @@ This script is highly customizable for other naming conventions or workflows. Up
 
 ---
 
-# 🪐 Run Watchdog Management Project on Boot (Windows)
+# Run Watchdog Management Project on Boot (Windows)
 
 This guide explains how to **run `Watchdog_Management_Project.py` automatically on Windows startup using a `.bat` file placed in the Startup folder**.
 
 ---
 
-## 🛠️ Steps
+## Steps
 
-### 1️⃣ Create a Batch File
+### 1️. Create a Batch File
 
 1. Open **Notepad**.
 2. Paste the following, replacing with your actual Python executable and script paths:
@@ -60,7 +60,7 @@ This guide explains how to **run `Watchdog_Management_Project.py` automatically 
 
 ---
 
-### 2️⃣ Add the Batch File to the Startup Folder
+### 2️. Add the Batch File to the Startup Folder
 
 1. Press:
 
@@ -80,29 +80,10 @@ This guide explains how to **run `Watchdog_Management_Project.py` automatically 
 
 ---
 
-✅ Now, your **Watchdog Management Project will automatically run every time you log in to Windows**.
+Now, your **Watchdog Management Project will automatically run every time you log in to Windows**.
 
 ---
 
-## 🩺 Debugging Tips
-
-- If you want the terminal to stay open to view potential errors, add `pause` at the end of your `.bat` file:
-
-    ```batch
-    @echo off
-    "C:\Path\To\Python\python.exe" "C:\Path\To\Watchdog_Management_Project.py"
-    pause
-    ```
-
-- To find your Python executable path, run:
-
-    ```powershell
-    where python
-    ```
-
-- For advanced needs like running before login or in the background, consider using **Task Scheduler** instead of the Startup folder.
-
----
 
 ## 📜 License
 
